@@ -13,7 +13,7 @@ struct RospotrebUrlIds
     id2 :: Int
 end
 
-struct DailyData
+mutable struct DailyData
     new   :: Params
     total :: Params
     rsp   :: RospotrebUrlIds
@@ -25,3 +25,7 @@ struct DailyData
               total_tests :: String) = new(new, total, rsp, total_tests)
 end
 
+struct Inputs
+    data :: Dict
+    region_names :: Dict
+end

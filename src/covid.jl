@@ -1,5 +1,5 @@
 #
-# This file defines two functions `main_latest` and `main_total`
+# This file defines two functions `latest` and `total`
 # generating the last two rows for the Wikipedia  table
 # 
 #   https://en.wikipedia.org/wiki/Template:COVID-19_pandemic_data/Russia_medical_cases
@@ -9,17 +9,20 @@
 # it (c.f. section Inputs below). Same with `total`: this is the total 
 # numbers by the the date `n`, provided we have the data.
 #
+# For convenience, `main` prints results of both, `latest` and `main`
+#
 
 using Dates
 using DataFrames
 using CSV
 using JSON
 
+include("$(@__DIR__)/templates.jl")
 
 ### Constants
 
 # Tha date of interest
-n=now()
+n=now() - Day(1)
 
 ### Dull constants (e.g. paths)
 
@@ -101,240 +104,53 @@ function refs(url_id1 :: Int, url_id2 :: Int)
 end
 
 #
+# Get the total number of tests performed from Minzdrav's dataset
+#
+function get_tests(d :: Vector)
+    id = findfirst(d ->
+        d["LocationName"] ==   "No region speified", dft)
+    # weird but that's the key ^ Minzdrav stores the number of test under
+
+    commify(d[id]["Observations"])
+end
+
+#
+# Load input data, initialize input structures
+#
+function init()
+    dfl = CSV.File(INPUT_LATEST) |> DataFrame
+    dl = Dict(zip(map(strip, dfl[!,:Region]), dfl[!,:NewCases]))
+
+    rdfl = CSV.File(METADATA_DIR * "regions-map-rospotrebnadzor.csv") |> DataFrame
+    rl = Dict(zip(map(strip, rdfl[!,:RegionEn]), map(strip, rdfl[!,:RegionRu])))
+
+    dft = JSON.parsefile(INPUT_TOTAL)["Items"]
+    dt = Dict([r["LocationName"] => r["Confirmed"] for r in dft])
+
+    rdft = CSV.File(METADATA_DIR * "regions-map-minzdrav.csv") |> DataFrame
+    rt = Dict(zip(map(strip, rdft[!,:RegionEn]), map(strip, rdft[!,:RegionRu])))
+
+    cum=data[tag]
+    cum.total_tests = get_tests(dft)
+
+    (Inputs(dl,rl), Inputs(dt,rt), cum)
+end
+
+#
 ###########################################################
 #
 ### Main
 #
 
-function main_latest()
+latest_inp, total_inp, cum = init()
 
-    df = CSV.File(INPUT_LATEST) |> DataFrame
-    d = Dict(zip(map(strip, df[!,:Region]), df[!,:NewCases]))
+latest(i :: Inputs, cum :: DailyData) =
+    latest_template(i.data, i.region_names, cum)
 
-    rmdf = CSV.File(METADATA_DIR * "regions-map-rospotrebnadzor.csv") |> DataFrame
-    r = Dict(zip(map(strip, rmdf[!,:RegionEn]), map(strip, rmdf[!,:RegionRu])))
-    
-    cum=data[tag]
+total(i :: Inputs, cum :: DailyData) =
+    total_template(i.data, i.region_names, cum)
 
-    res_latest = """
-!{{nobr|{{abbr|$(f(n, "d U"))|$(f(n, "d U, Y"))}}}}
-<!-- Central -->
-| $(my_get(d, r["Belgorod Oblast"]))
-| $(my_get(d, r["Bryansk Oblast"]))
-| $(my_get(d, r["Ivanovo Oblast"]))
-| $(my_get(d, r["Kaluga Oblast"]))
-| $(my_get(d, r["Kostroma Oblast"]))
-| $(my_get(d, r["Kursk Oblast"]))
-| $(my_get(d, r["Lipetsk Oblast"]))
-| $(my_get(d, r["Moscow Oblast"]))
-| $(my_get(d, r["Oryol Oblast"]))
-| $(my_get(d, r["Ryazan Oblast"]))
-| $(my_get(d, r["Smolensk Oblast"]))
-| $(my_get(d, r["Tambov Oblast"]))
-| $(my_get(d, r["Tula Oblast"]))
-| $(my_get(d, r["Tver Oblast"]))
-| $(my_get(d, r["Vladimir Oblast"]))
-| $(my_get(d, r["Voronezh Oblast"]))
-| $(my_get(d, r["Yaroslavl Oblast"]))
-| $(my_get(d, r["Moscow"]))
-<!-- Northwestern -->
-| $(my_get(d, r["Republic of Karelia"]))
-| $(my_get(d, r["Komi Republic"]))
-| $(my_get(d, r["Arkhangelsk Oblast"]))
-| $(my_get(d, r["Kaliningrad Oblast"]))
-| $(my_get(d, r["Leningrad Oblast"]))
-| $(my_get(d, r["Murmansk Oblast"]))
-| $(my_get(d, r["Novgorod Oblast"]))
-| $(my_get(d, r["Pskov Oblast"]))
-| $(my_get(d, r["Vologda Oblast"]))
-| $(my_get(d, r["Saint Petersburg"]))
-| $(my_get(d, r["Nenets AO"]))
-<!-- Southern -->
-| $(my_get(d, r["Adygea"]))
-| $(my_get(d, r["Republic of Crimea"]))
-| $(my_get(d, r["Kalmykia"]))
-| $(my_get(d, r["Krasnodar Krai"]))
-| $(my_get(d, r["Astrakhan Oblast"]))
-| $(my_get(d, r["Rostov Oblast"]))
-| $(my_get(d, r["Volgograd Oblast"]))
-| $(my_get(d, r["Sevastopol"]))
-<!-- North Caucasian -->
-| $(my_get(d, r["Chechnya"]))
-| $(my_get(d, r["Dagestan"]))
-| $(my_get(d, r["Ingushetia"]))
-| $(my_get(d, r["Kabardino-Balkaria"]))
-| $(my_get(d, r["Karachay-Cherkessia"]))
-| $(my_get(d, r["North Ossetia"]))
-| $(my_get(d, r["Stavropol Krai"]))
-<!-- Volga -->
-| $(my_get(d, r["Bashkortostan"]))
-| $(my_get(d, r["Chuvashia"]))
-| $(my_get(d, r["Mari El"]))
-| $(my_get(d, r["Mordovia"]))
-| $(my_get(d, r["Tatarstan"]))
-| $(my_get(d, r["Udmurtia"]))
-| $(my_get(d, r["Perm Krai"]))
-| $(my_get(d, r["Kirov Oblast"]))
-| $(my_get(d, r["Nizhny Novgorod Oblast"]))
-| $(my_get(d, r["Orenburg Oblast"]))
-| $(my_get(d, r["Penza Oblast"]))
-| $(my_get(d, r["Samara Oblast"]))
-| $(my_get(d, r["Saratov Oblast"]))
-| $(my_get(d, r["Ulyanovsk Oblast"]))
-<!-- Ural -->
-| $(my_get(d, r["Chelyabinsk Oblast"]))
-| $(my_get(d, r["Kurgan Oblast"]))
-| $(my_get(d, r["Sverdlovsk Oblast"]))
-| $(my_get(d, r["Tyumen Oblast"]))
-| $(my_get(d, r["Khanty-Mansi AO"]))
-| $(my_get(d, r["Yamalo-Nenets AO"]))
-<!-- Siberian -->
-| $(my_get(d, r["Altai Republic"]))
-| $(my_get(d, r["Khakassia"]))
-| $(my_get(d, r["Tuva"]))
-| $(my_get(d, r["Altai Krai"]))
-| $(my_get(d, r["Krasnoyarsk Krai"]))
-| $(my_get(d, r["Irkutsk Oblast"]))
-| $(my_get(d, r["Kemerovo Oblast"]))
-| $(my_get(d, r["Novosibirsk Oblast"]))
-| $(my_get(d, r["Omsk Oblast"]))
-| $(my_get(d, r["Tomsk Oblast"]))
-<!-- Far Eastern -->
-| $(my_get(d, r["Buryatia"]))
-| $(my_get(d, r["Yakutia"]))
-| $(my_get(d, r["Kamchatka Krai"]))
-| $(my_get(d, r["Khabarovsk Krai"]))
-| $(my_get(d, r["Primorsky Krai"]))
-| $(my_get(d, r["Zabaykalsky Krai"]))
-| $(my_get(d, r["Amur Oblast"]))
-| $(my_get(d, r["Magadan Oblast"]))
-| $(my_get(d, r["Sakhalin Oblast"]))
-| $(my_get(d, r["Chukotka AO"]))
-| $(my_get(d, r["Jewish AO"]))
-!{{nobr|{{abbr|$(f(n, "d U"))|$(f(n, "d U, Y"))}}}}
-! $(cum.new.cases)
-! $(cum.total.cases)
-! $(cum.new.recovered)
-! $(cum.total.recovered)
-! $(cum.new.deaths)
-! $(cum.total.deaths)
-| $(cum.total_tests)
-| $(refs(cum.rsp.id1, cum.rsp.id2))
-|-
-"""
-end
-
-function main_total()
-
-    df = JSON.parsefile(INPUT_TOTAL)["Items"]
-    d = Dict([r["LocationName"] => r["Confirmed"] for r in df])
-
-    rmdf = CSV.File(METADATA_DIR * "regions-map-minzdrav.csv") |> DataFrame
-    r = Dict(zip(map(strip, rmdf[!,:RegionEn]), map(strip, rmdf[!,:RegionRu])))
-
-    cum=data[tag]
-
-    res_total = """
-! Total
-<!-- Central -->
-! $(my_get(d, r["Belgorod Oblast"]))
-! $(my_get(d, r["Bryansk Oblast"]))
-! $(my_get(d, r["Ivanovo Oblast"]))
-! $(my_get(d, r["Kaluga Oblast"]))
-! $(my_get(d, r["Kostroma Oblast"]))
-! $(my_get(d, r["Kursk Oblast"]))
-! $(my_get(d, r["Lipetsk Oblast"]))
-! $(my_get(d, r["Moscow Oblast"]))
-! $(my_get(d, r["Oryol Oblast"]))
-! $(my_get(d, r["Ryazan Oblast"]))
-! $(my_get(d, r["Smolensk Oblast"]))
-! $(my_get(d, r["Tambov Oblast"]))
-! $(my_get(d, r["Tula Oblast"]))
-! $(my_get(d, r["Tver Oblast"]))
-! $(my_get(d, r["Vladimir Oblast"]))
-! $(my_get(d, r["Voronezh Oblast"]))
-! $(my_get(d, r["Yaroslavl Oblast"]))
-! $(my_get(d, r["Moscow"]))
-<!-- Northwestern -->
-! $(my_get(d, r["Republic of Karelia"]))
-! $(my_get(d, r["Komi Republic"]))
-! $(my_get(d, r["Arkhangelsk Oblast"]))
-! $(my_get(d, r["Kaliningrad Oblast"]))
-! $(my_get(d, r["Leningrad Oblast"]))
-! $(my_get(d, r["Murmansk Oblast"]))
-! $(my_get(d, r["Novgorod Oblast"]))
-! $(my_get(d, r["Pskov Oblast"]))
-! $(my_get(d, r["Vologda Oblast"]))
-! $(my_get(d, r["Saint Petersburg"]))
-! $(my_get(d, r["Nenets AO"]))
-<!-- Southern -->
-! $(my_get(d, r["Adygea"]))
-! $(my_get(d, r["Republic of Crimea"]))
-! $(my_get(d, r["Kalmykia"]))
-! $(my_get(d, r["Krasnodar Krai"]))
-! $(my_get(d, r["Astrakhan Oblast"]))
-! $(my_get(d, r["Rostov Oblast"]))
-! $(my_get(d, r["Volgograd Oblast"]))
-! $(my_get(d, r["Sevastopol"]))
-<!-- North Caucasian -->
-! $(my_get(d, r["Chechnya"]))
-! $(my_get(d, r["Dagestan"]))
-! $(my_get(d, r["Ingushetia"]))
-! $(my_get(d, r["Kabardino-Balkaria"]))
-! $(my_get(d, r["Karachay-Cherkessia"]))
-! $(my_get(d, r["North Ossetia"]))
-! $(my_get(d, r["Stavropol Krai"]))
-<!-- Volga -->
-! $(my_get(d, r["Bashkortostan"]))
-! $(my_get(d, r["Chuvashia"]))
-! $(my_get(d, r["Mari El"]))
-! $(my_get(d, r["Mordovia"]))
-! $(my_get(d, r["Tatarstan"]))
-! $(my_get(d, r["Udmurtia"]))
-! $(my_get(d, r["Perm Krai"]))
-! $(my_get(d, r["Kirov Oblast"]))
-! $(my_get(d, r["Nizhny Novgorod Oblast"]))
-! $(my_get(d, r["Orenburg Oblast"]))
-! $(my_get(d, r["Penza Oblast"]))
-! $(my_get(d, r["Samara Oblast"]))
-! $(my_get(d, r["Saratov Oblast"]))
-! $(my_get(d, r["Ulyanovsk Oblast"]))
-<!-- Ural -->
-! $(my_get(d, r["Chelyabinsk Oblast"]))
-! $(my_get(d, r["Kurgan Oblast"]))
-! $(my_get(d, r["Sverdlovsk Oblast"]))
-! $(my_get(d, r["Tyumen Oblast"]))
-! $(my_get(d, r["Khanty-Mansi AO"]))
-! $(my_get(d, r["Yamalo-Nenets AO"]))
-<!-- Siberian -->
-! $(my_get(d, r["Altai Republic"]))
-! $(my_get(d, r["Khakassia"]))
-! $(my_get(d, r["Tuva"]))
-! $(my_get(d, r["Altai Krai"]))
-! $(my_get(d, r["Krasnoyarsk Krai"]))
-! $(my_get(d, r["Irkutsk Oblast"]))
-! $(my_get(d, r["Kemerovo Oblast"]))
-! $(my_get(d, r["Novosibirsk Oblast"]))
-! $(my_get(d, r["Omsk Oblast"]))
-! $(my_get(d, r["Tomsk Oblast"]))
-<!-- Far Eastern -->
-! $(my_get(d, r["Buryatia"]))
-! $(my_get(d, r["Yakutia"]))
-! $(my_get(d, r["Kamchatka Krai"]))
-! $(my_get(d, r["Khabarovsk Krai"]))
-! $(my_get(d, r["Primorsky Krai"]))
-! $(my_get(d, r["Zabaykalsky Krai"]))
-! $(my_get(d, r["Amur Oblast"]))
-! $(my_get(d, r["Magadan Oblast"]))
-! $(my_get(d, r["Sakhalin Oblast"]))
-! $(my_get(d, r["Chukotka AO"]))
-! $(my_get(d, r["Jewish AO"]))
-! Total
-! colspan="2" | $(cum.total.cases){{efn|name="diamond-princess"}}
-! colspan="2" | $(cum.total.recovered){{efn|name="diamond-princess"}}
-! colspan="2" | $(cum.total.deaths)
-! {{n/a}}
-! <ref name="Rus_Ministry">{{cite web |title=Информация о новой коронавирусной инфекции |trans-title=Information on Novel Coronavirus Infection |url=https://www.rosminzdrav.ru/ministry/covid19 |publisher=[[Ministry of Health (Russia)|Ministry of Health]] |accessdate=19 May 2020 |language=ru}}</ref><ref name="Rus_Taskforce">{{cite web |title=Оперативные данные|trans-title=Operational data| url=https://xn--80aesfpebagmfblc0a.xn--p1ai/ |website=Стопкоронавирус.рф |accessdate=19 May 2020 |language=ru}}</ref>
-"""
-
+function main()
+    println(latest(latest_inp, cum))
+    println(total(total_inp, cum))
 end
