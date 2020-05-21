@@ -42,11 +42,15 @@ We call these datasets Rospotrebnadzor and Minzdrav accordingly.
     1.  “_О подтвержденных случаях новой коронавирусной инфекции COVID-2019 в России_”,
     2.  “_Информационный бюллетень о ситуации и принимаемых мерах по недопущению распространения заболеваний, вызванных новым коронавирусом_”.
     
-    First, their URLs provide IDs for `DailyData.rsp`. The first page 
-    has a list with desired numbers, which should be saved as plain text
+    First, their URLs provide IDs for `DailyData.rsp`.
     
     Second, store the list on the page (1) (“_О подтвержденных…_”)
     as the plain text under `data/covidMMDD.csv` and feed this file to
     [`src/clean-rpn.sh`](src/clean-rpn.sh) to turn it into CSV.
 
-2. Download Minzdrav data under `data/total-covidMMDD.json`.
+2. Download Minzdrav data under `data/total-covidMMDD.json`. This is
+    automated by [`src/get-covid-minzdrav.sh`](src/get-covid-minzdrav.sh).
+
+3. Load [`src/covid.jl`](src/covid.jl) into Julia and run `main()`.
+
+4. Profit.
