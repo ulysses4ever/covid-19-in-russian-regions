@@ -9,7 +9,7 @@
 # it (c.f. section Inputs below). Same with `total`: this is the total 
 # numbers by the the date `n`, provided we have the data.
 #
-# For convenience, `main` prints results of both, `latest` and `main`
+# For convenience, `main` prints results of both, `latest` and `total`
 #
 
 using Dates
@@ -22,7 +22,7 @@ include("$(@__DIR__)/templates.jl")
 ### Constants
 
 # Tha date of interest
-n=now() - Day(1)
+n=now()
 
 ### Dull constants (e.g. paths)
 
@@ -151,6 +151,6 @@ total(i :: Inputs, cum :: DailyData) =
     total_template(i.data, i.region_names, cum)
 
 function main()
-    println(latest(latest_inp, cum))
+    print(latest(latest_inp, cum))
     println(total(total_inp, cum))
 end

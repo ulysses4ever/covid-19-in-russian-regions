@@ -22,6 +22,9 @@
 SRC_DIR = "$(@__DIR__)/../src/"
 include(SRC_DIR * "structs.jl")
 
+# Note [Total tests metric]
+# as of 89abeff we don't need to put DailyData.total_tests in manually
+
 data = Dict(
 
     "0518" => DailyData(
@@ -67,6 +70,21 @@ data = Dict(
         ),
         rsp=RospotrebUrlIds(14498, 14493),
         total_tests="7,578,029"
+    ),
+
+    "0521" => DailyData(
+        new=Params(
+            cases     = "8,849",
+            recovered = "7,289",
+            deaths    =   "127",
+        ),
+        total=Params(
+            cases     = "317,554",
+            recovered =  "92,681",
+            deaths    =   "3,099",
+        ),
+        rsp=RospotrebUrlIds(14509, 14506),
+        total_tests="" # c.f. Note [Total tests metric]
     ),
 
 )
