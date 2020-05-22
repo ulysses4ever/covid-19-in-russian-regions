@@ -106,12 +106,30 @@ end
 #
 # Get the total number of tests performed from Minzdrav's dataset
 #
+# Input: Vector od Dict's with `LocationName`, `Confirmed`, etc...
+# See Minzdrav's JSON for full description
 function get_tests(d :: Vector)
     id = findfirst(d ->
         d["LocationName"] ==   "No region speified", dft)
     # weird but that's the key ^ Minzdrav stores the number of test under
 
     commify(d[id]["Observations"])
+end
+
+#
+# Get the total number of the main `Params` (cases/recovered/deaths)
+#
+# Input: Vector od Dict's with `LocationName`, `Confirmed`, etc...
+# See Minzdrav's JSON for full description
+function get_total(v :: Vector)::Params
+    c=0; r=0; d=0
+    for x in v
+        if x["LocationName"] == "No region speified"
+            continue
+        end
+        c += x["Confirmed"]; r += x["Recovered"]; d += x["Deaths"]
+    end
+    Params(commify(c), commify(r), commify(d))
 end
 
 #
@@ -132,6 +150,7 @@ function init()
 
     cum=data[tag]
     cum.total_tests = get_tests(dft)
+    cum.total = get_total(dft)
 
     (Inputs(dl,rl), Inputs(dt,rt), cum)
 end
