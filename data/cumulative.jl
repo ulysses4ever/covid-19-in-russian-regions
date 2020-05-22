@@ -88,18 +88,7 @@ data = Dict(
     ),
 
     "0522" => DailyData(
-        new=Params(
-            cases     = "8,894",
-            recovered = "7,144",
-            deaths    =   "150",
-        ),
-        total=Params(
-            cases     = "326,448",
-            recovered =  "99,825",
-            deaths    =   "3,249",
-        ),
         rsp=RospotrebUrlIds(14519, 14517),
-        total_tests="" # c.f. Note [Total tests metric]
     ),
 
 )

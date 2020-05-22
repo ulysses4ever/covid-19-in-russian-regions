@@ -26,7 +26,8 @@ n=now()
 
 ### Dull constants (e.g. paths)
 
-tag = Dates.format(n, "mmdd")
+make_tag(d :: DateTime) = Dates.format(d, "mmdd")
+tag = make_tag(n)
 DATA_DIR = "$(@__DIR__)/../data/"
 METADATA_DIR = DATA_DIR * "/meta/"
 
@@ -49,6 +50,8 @@ INPUT_LATEST = DATA_DIR * "covid$(tag).csv"
 # Cumulative numbers by region come from Minzdrav website (JSON)
 # https://covid19.rosminzdrav.ru/wp-json/api/mapdata/
 INPUT_TOTAL = DATA_DIR * "total-covid$(tag).json"
+# Will need to fetch previous day totals to compute news
+INPUT_TOTAL_PREV = DATA_DIR * "total-covid$(make_tag(n - Day(1))).json"
 
 # Total cumulative numbers in Russia:
 include(DATA_DIR * "cumulative.jl")
@@ -108,12 +111,12 @@ end
 #
 # Input: Vector od Dict's with `LocationName`, `Confirmed`, etc...
 # See Minzdrav's JSON for full description
-function get_tests(d :: Vector)
+function get_tests(v :: Vector)
     id = findfirst(d ->
-        d["LocationName"] ==   "No region speified", dft)
+        d["LocationName"] ==   "No region speified", v)
     # weird but that's the key ^ Minzdrav stores the number of test under
 
-    commify(d[id]["Observations"])
+    commify(v[id]["Observations"])
 end
 
 #
@@ -136,21 +139,31 @@ end
 # Load input data, initialize input structures
 #
 function init()
+    # Region new cases for today:
     dfl = CSV.File(INPUT_LATEST) |> DataFrame
     dl = Dict(zip(map(strip, dfl[!,:Region]), dfl[!,:NewCases]))
 
     rdfl = CSV.File(METADATA_DIR * "regions-map-rospotrebnadzor.csv") |> DataFrame
     rl = Dict(zip(map(strip, rdfl[!,:RegionEn]), map(strip, rdfl[!,:RegionRu])))
 
+    # Region totals for today:
     dft = JSON.parsefile(INPUT_TOTAL)["Items"]
     dt = Dict([r["LocationName"] => r["Confirmed"] for r in dft])
 
     rdft = CSV.File(METADATA_DIR * "regions-map-minzdrav.csv") |> DataFrame
     rt = Dict(zip(map(strip, rdft[!,:RegionEn]), map(strip, rdft[!,:RegionRu])))
 
+    # Region totals for the previous day (need to compute total news)
+    dftp = JSON.parsefile(INPUT_TOTAL_PREV)["Items"]
+    
+    # We will need this when implement computation of region-news
+    #dtp = Dict([r["LocationName"] => r["Confirmed"] for r in dftp])
+
+    # Russia totals (aka cumulatives)
     cum=data[tag]
     cum.total_tests = get_tests(dft)
     cum.total = get_total(dft)
+    cum.new = cum.total - get_total(dftp)
 
     (Inputs(dl,rl), Inputs(dt,rt), cum)
 end
