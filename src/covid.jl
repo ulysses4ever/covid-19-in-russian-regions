@@ -40,21 +40,15 @@ METADATA_DIR = DATA_DIR * "/meta/"
 # Note: we have 3 inputs described below
 #
 
-# Latest numbers by region come from Rospotrebnadzor website in the form
-# of CSV manually created from their webpage :-( 
-# well, with a little help of `src/clean-rpn.sh`, which turns a
-# manually created text file into a CSV.
-# C.f. the News section of their website
-INPUT_LATEST = DATA_DIR * "covid$(tag).csv"
-
 # Cumulative numbers by region come from Minzdrav website (JSON)
 # https://covid19.rosminzdrav.ru/wp-json/api/mapdata/
-INPUT_TOTAL = DATA_DIR * "total-covid$(tag).json"
-# Will need to fetch previous day totals to compute news
-INPUT_TOTAL_PREV = DATA_DIR * "total-covid$(make_tag(n - Day(1))).json"
+INPUT_TOTAL = DATA_DIR * "covid$(tag).json"
 
-# Total cumulative numbers in Russia:
-include(DATA_DIR * "cumulative.jl")
+# SAme as above but for the previous day: to compute new cases for today ("latests")
+INPUT_TOTAL_PREV = DATA_DIR * "covid$(make_tag(n - Day(1))).json"
+
+# Daily data updated manually. Currently just URL IDs of Rospotrednadzor website
+include(DATA_DIR * "daily.jl")
 
 #
 ###########################################################
@@ -139,33 +133,30 @@ end
 # Load input data, initialize input structures
 #
 function init()
-    # Region new cases for today:
-    dfl = CSV.File(INPUT_LATEST) |> DataFrame
-    dl = Dict(zip(map(strip, dfl[!,:Region]), dfl[!,:NewCases]))
-
-    rdfl = CSV.File(METADATA_DIR * "regions-map-rospotrebnadzor.csv") |> DataFrame
-    rl = Dict(zip(map(strip, rdfl[!,:RegionEn]), map(strip, rdfl[!,:RegionRu])))
+    # Load dictionary of region names
+    rdft = CSV.File(METADATA_DIR * "regions-map-minzdrav.csv") |> DataFrame
+    rt = Dict(zip(
+        map(strip, rdft[!,:RegionEn]), 
+        map(strip, rdft[!,:RegionRu])))
 
     # Region totals for today:
     dft = JSON.parsefile(INPUT_TOTAL)["Items"]
-    dt = Dict([r["LocationName"] => r["Confirmed"] for r in dft])
+    dtotal = Dict([r["LocationName"] => r["Confirmed"] for r in dft])
 
-    rdft = CSV.File(METADATA_DIR * "regions-map-minzdrav.csv") |> DataFrame
-    rt = Dict(zip(map(strip, rdft[!,:RegionEn]), map(strip, rdft[!,:RegionRu])))
-
-    # Region totals for the previous day (need to compute total news)
+    # Region totals for the previous day
     dftp = JSON.parsefile(INPUT_TOTAL_PREV)["Items"]
-    
-    # We will need this when implement computation of region-news
-    #dtp = Dict([r["LocationName"] => r["Confirmed"] for r in dftp])
+    dtotal_prev = Dict([r["LocationName"] => r["Confirmed"] for r in dftp])
 
-    # Russia totals (aka cumulatives)
+    # New ("latest") cases are: today_total - yesterday_total
+    dlatest = merge(-, dtotal, dtotal_prev)
+
+    # All-Russia totals (as opposed to region-wise totals stored in `dtotal`)
     cum=data[tag]
     cum.total_tests = get_tests(dft)
     cum.total = get_total(dft)
     cum.new = cum.total - get_total(dftp)
 
-    (Inputs(dl,rl), Inputs(dt,rt), cum)
+    (Inputs(dlatest, rt), Inputs(dtotal, rt), cum)
 end
 
 #
@@ -184,5 +175,5 @@ total(i :: Inputs, cum :: DailyData) =
 
 function main()
     print(latest(latest_inp, cum))
-    println(total(total_inp, cum))
+    print(total(total_inp, cum))
 end

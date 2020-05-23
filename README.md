@@ -18,22 +18,14 @@ We use two data sources:
 
 1. Rospotrebnadzor publishes region-wise numbers of new cases on daily basis
      on its website ([News section](https://rospotrebnadzor.ru/about/info/news/)).
-     This comes in HTML, we manually create text file
-     and turn it into a CSV using [`src/getclean-rpn.sh`](src/getclean-rpn.sh).
+     We don't use these data in the script per se, instead we use their URLs to
+     provide references to "Authorative Sources".
 
-2. Minzdrav publishes total numbers in regions in the form of JSON.
-   The new data unfortunately overwrites the old data 
+2. Minzdrav publishes total numbers in regions in the form of JSON daily.
+   The new data unfortunately overwrites the old data
    [using the same URL](https://covid19.rosminzdrav.ru/wp-json/api/mapdata/).
 
-We call these datasets Rospotrebnadzor and Minzdrav accordingly. 
-
-
 ## User guide
-
-0. Step zero -- manual input (TODO: remove in the future.)  
-    Some data requires to be collected manually -- navigate to
-    [`data/cumulative.jl`](data/cumulative.jl) for details: we need to
-    fill in a new instance of `DailyData` every day.
 
 1. Find Rospotrebnadzor data on its website: go to the 
     [News section](https://rospotrebnadzor.ru/about/info/news/)
@@ -42,15 +34,14 @@ We call these datasets Rospotrebnadzor and Minzdrav accordingly.
     1.  “_О подтвержденных случаях новой коронавирусной инфекции COVID-2019 в России_”,
     2.  “_Информационный бюллетень о ситуации и принимаемых мерах по недопущению распространения заболеваний, вызванных новым коронавирусом_”.
     
-    First, their URLs provide IDs for `DailyData.rsp`.
-    
-    Second, store the list on the page (1) (“_О подтвержденных…_”)
-    as the plain text under `data/covidMMDD.csv` and feed this file to
-    [`src/clean-rpn.sh`](src/clean-rpn.sh) to turn it into CSV.
+    Their URLs provide IDs for `DailyData.rsp`, which you should record manually
+    in [`data/daily.jl`](data/daily.jl).
 
-2. Download Minzdrav data under `data/total-covidMMDD.json`. This is
-    automated by [`src/get-covid-minzdrav.sh`](src/get-covid-minzdrav.sh).
+2. Download [Minzdrav data](https://covid19.rosminzdrav.ru/wp-json/api/mapdata/) 
+    under `data/covidMMDD.json`. This is automated by
+    [`src/get-covid-minzdrav.sh`](src/get-covid-minzdrav.sh).
 
 3. Load [`src/covid.jl`](src/covid.jl) into Julia and run `main()`.
 
 4. Profit.
+
