@@ -41,4 +41,17 @@ data = Dict(
         rsp=RospotrebUrlIds(14526, 14525),
     ),
 
+    "0524" => DailyData(
+        rsp=RospotrebUrlIds(14528, 14527),
+    ),
+
+
+    "0525" => DailyData(
+        rsp=RospotrebUrlIds(14532, 14529),
+    ),
+
+    "0526" => DailyData(
+        rsp=RospotrebUrlIds(14545, 14543),
+    ),
+
 )

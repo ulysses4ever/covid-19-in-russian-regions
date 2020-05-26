@@ -11,8 +11,8 @@ tmp=${base}/tmp.json
 yest=$(date +%m%d --date="yesterday")
 last=${base}/covid${yest}.json
 wget https://covid19.rosminzdrav.ru/wp-json/api/mapdata/ -O ${tmp}
-df=$(diff ${last} ${tmp})
-if [ "$d" == "" ]
+df=$(diff ${last} ${tmp} | head -1)
+if [ "$df" == "" ]
 then
     rm ${tmp}
 else
