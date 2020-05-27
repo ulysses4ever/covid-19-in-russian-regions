@@ -22,7 +22,7 @@ include("$(@__DIR__)/templates.jl")
 ### Constants
 
 # Tha date of interest
-n=now() - Day(1)
+n=now() # - Day(1)
 
 ### Dull constants (e.g. paths)
 
@@ -84,9 +84,10 @@ f=Dates.format
 #
 # Generate references to Rospotrebnadzor website
 #
-function ref(name :: String, url :: String, title :: String)
+function ref(name :: String, url :: String, title :: String, 
+        work :: String = "[[Rospotrebnadzor]] ")
     today = f(n, "d U Y")
-    "<ref$(name)>{{cite news |title=$(title) |url=$(url) |accessdate=$(today) |work=[[Rospotrebnadzor]] |date=$(today)}}</ref>"
+    "<ref$(name)>{{cite news |title=$(title) |url=$(url) |accessdate=$(today) |work=$(work)|date=$(today)}}</ref>"
 end
 
 function refs(url_id1 :: Int, url_id2 :: Int)
@@ -100,7 +101,8 @@ function refs(url_id1 :: Int, url_id2 :: Int)
     name1 = " name=\"rus$(lowercase(f(n, "Ud")))\""
     name2 = ""
 
-    ref(name1, url1, t1) * ref(name2, url2, t2)
+    #ref(name1, url1, t1) 
+    "<ref name=\"Rus_Ministry\" />" * ref(name2, url2, t2)
 end
 
 #
