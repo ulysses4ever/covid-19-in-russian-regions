@@ -22,7 +22,7 @@ include("$(@__DIR__)/templates.jl")
 ### Constants
 
 # Tha date of interest
-n=now()
+n=now() - Day(1)
 
 ### Dull constants (e.g. paths)
 
@@ -72,9 +72,12 @@ function commify(s :: String)
     reverse(res * s[comma_count*3+1 : end])
 end
 
-# Extracts value by key `k` out of dictionary `d` and commyfies it
-# default value is "" (empty string)
-my_get(d, k) = commify(get(d, k, ""))
+# Extracts value by key `k` out of dictionary `d` and commyfies it.
+# Default value "" (empty string) is used when key is not found or value is 0.
+function my_get(d, k)
+    v=get(d, k, "")
+    v == 0 ? "" : commify(v)
+end
 
 f=Dates.format
 
