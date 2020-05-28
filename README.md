@@ -9,7 +9,7 @@ The table is shown in the [main wikipage on COVID-19 in Russia](https://en.wikip
 
 The [`src/covid.jl`](src/covid.jl) Julia script generates relevant table rows
 provided the data is available in [`data`](data) for desired date.
-More comments on usage and the data formats are provided inside the script.
+More comments on usage and the data formats are provided below and inside the script.
 
 
 ## Datasets
@@ -34,14 +34,28 @@ We use two data sources:
     1.  “_О подтвержденных случаях новой коронавирусной инфекции COVID-2019 в России_”,
     2.  “_Информационный бюллетень о ситуации и принимаемых мерах по недопущению распространения заболеваний, вызванных новым коронавирусом_”.
     
-    Their URLs provide IDs for `DailyData.rsp`, which you should record manually
-    in [`data/daily.jl`](data/daily.jl).
-
+    Their URLs provide IDs which we store inside [`data/rpn-url-ids`](data/rpn-url-ids)
+    under the `MMDD`-formated filename.
+    We automate getting these data in
+    [`src/get-rpn.sh`](src/get-rpn.sh).
+    
 2. Download [Minzdrav data](https://covid19.rosminzdrav.ru/wp-json/api/mapdata/) 
     under `data/covidMMDD.json`. This is automated by
-    [`src/get-covid-minzdrav.sh`](src/get-covid-minzdrav.sh).
+    [`src/get-minzdrav.sh`](src/get-minzdrav.sh).
 
 3. Load [`src/covid.jl`](src/covid.jl) into Julia and run `main()`.
 
 4. Profit.
+
+
+## Prerequisites
+
+The main script assumes Julia 1+ with the following packages:
+
+* Dates
+* DataFrames
+* CSV
+* JSON
+
+The auxiliary Bash scripts assume standard Unix shell environment + `iconv`.
 

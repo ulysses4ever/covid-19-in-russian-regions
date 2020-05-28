@@ -101,7 +101,7 @@ latest_template(d,r,cum) = """
 ! $(cum.new.deaths)
 ! $(cum.total.deaths)
 | $(cum.total_tests)
-| $(refs(cum.rsp.id1, cum.rsp.id2))
+| $(refs(cum.rpn.id1, cum.rpn.id2))
 |-
 """
 

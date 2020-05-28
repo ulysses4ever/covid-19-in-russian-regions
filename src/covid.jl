@@ -17,6 +17,7 @@ using DataFrames
 using CSV
 using JSON
 
+include("$(@__DIR__)/structs.jl")
 include("$(@__DIR__)/templates.jl")
 
 ### Constants
@@ -29,6 +30,8 @@ n=now() # - Day(1)
 make_tag(d :: DateTime) = Dates.format(d, "mmdd")
 tag = make_tag(n)
 DATA_DIR = "$(@__DIR__)/../data/"
+DATA_RPN_DIR = "$(DATA_DIR)/rpn-url-ids/"
+DATA_MINZDRAV_DIR = "$(DATA_DIR)/minzdrav/"
 METADATA_DIR = DATA_DIR * "/meta/"
 
 #
@@ -42,13 +45,25 @@ METADATA_DIR = DATA_DIR * "/meta/"
 
 # Cumulative numbers by region come from Minzdrav website (JSON)
 # https://covid19.rosminzdrav.ru/wp-json/api/mapdata/
-INPUT_TOTAL = DATA_DIR * "covid$(tag).json"
+INPUT_TOTAL = DATA_MINZDRAV_DIR * "covid$(tag).json"
 
-# SAme as above but for the previous day: to compute new cases for today ("latests")
-INPUT_TOTAL_PREV = DATA_DIR * "covid$(make_tag(n - Day(1))).json"
+# Same as above but for the previous day: to compute new cases for today ("latests")
+INPUT_TOTAL_PREV = DATA_MINZDRAV_DIR * "covid$(make_tag(n - Day(1))).json"
 
 # Daily data updated manually. Currently just URL IDs of Rospotrednadzor website
-include(DATA_DIR * "daily.jl")
+INPUT_RPN = "$(DATA_RPN_DIR)/$(tag)"
+
+# We use Rospotrebnadzor website links to provide references to 
+# "Authorative Sources". While we use Minzdrav website to get the actual data
+# in nice machine-readable form (JSON), it is no good for referencing:
+# Minzdrav overwrites the data daily. In contrast, Rospotrebnadzor
+# preserves daily updates from the past.
+#
+# Note [Rospotrebnadzor URLs]: In the INPUT_RPN dir we store only _IDs_ of
+# Rospotrebnadzor web pages. Resulting Urls are of the form (note <Our ID>):
+#
+# > https://rospotrebnadzor.ru/about/info/news/news_details.php?ELEMENT_ID=<Our ID>
+#
 
 #
 ###########################################################
@@ -155,13 +170,24 @@ function init()
     # New ("latest") cases are: today_total - yesterday_total
     dlatest = merge(-, dtotal, dtotal_prev)
 
+    # RPN URLs
+    urls_str = open(f -> read(f, String), INPUT_RPN)
+    urls = eval(Base.Meta.parse(urls_str))
+    rpn_urls = RospotrebUrlIds(urls...)
+    
     # All-Russia totals (as opposed to region-wise totals stored in `dtotal`)
-    cum=data[tag]
-    cum.total_tests = get_tests(dft)
-    cum.total = get_total(dft)
-    cum.new = cum.total - get_total(dftp)
+    total_cum = get_total(dft)
+    cum = DailyData(
+        new = total_cum - get_total(dftp),
+        total = total_cum,
+        total_tests = get_tests(dft),
+        rpn = rpn_urls)
 
     (Inputs(dlatest, rt), Inputs(dtotal, rt), cum)
+end
+
+function init_global()
+    global latest_inp, total_inp, cum = init()
 end
 
 #
@@ -170,8 +196,6 @@ end
 ### Main
 #
 
-latest_inp, total_inp, cum = init()
-
 latest(i :: Inputs, cum :: DailyData) =
     latest_template(i.data, i.region_names, cum)
 
@@ -179,6 +203,7 @@ total(i :: Inputs, cum :: DailyData) =
     total_template(i.data, i.region_names, cum)
 
 function main()
+    init_global()
     print(latest(latest_inp, cum))
     print(total(total_inp, cum))
 end
