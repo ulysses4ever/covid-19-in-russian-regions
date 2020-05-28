@@ -1,6 +1,7 @@
 #!/bin/bash
 #set -x
-base="$(pwd)/../data/rpn-url-ids"
+mydir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+base="$(mydir)/../data/rpn-url-ids"
 today="$(date +%m%d)"
 out="${base}/${today}"
 if [ -f "${out}" ]
