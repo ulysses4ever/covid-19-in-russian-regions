@@ -101,8 +101,8 @@ function refs(url_id1 :: Int, url_id2 :: Int)
     name1 = " name=\"rus$(lowercase(f(n, "Ud")))\""
     name2 = ""
 
-    #ref(name1, url1, t1) 
-    "<ref name=\"Rus_Ministry\" />" * ref(name2, url2, t2)
+    ref(name1, url1, t1) * ref(name2, url2, t2)
+    #"<ref name=\"Rus_Ministry\" />" 
 end
 
 #

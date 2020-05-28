@@ -58,4 +58,9 @@ data = Dict(
         rsp=RospotrebUrlIds(0, 14552), # 1st URL N/A
     ),
 
+    "0528" => DailyData(
+        rsp=RospotrebUrlIds(14560, 14558),
+    ),
+
 )
+
