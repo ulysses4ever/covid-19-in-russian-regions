@@ -23,15 +23,16 @@ include("$(@__DIR__)/templates.jl")
 ### Constants
 
 # Tha date of interest
-n=now() # - Day(1)
+n()=now() # - Day(1)
 
 ### Dull constants (e.g. paths)
 
 make_tag(d :: DateTime) = Dates.format(d, "mmdd")
-tag = make_tag(n)
+tag() = make_tag(n())
+
 DATA_DIR = "$(@__DIR__)/../data/"
-DATA_RPN_DIR = "$(DATA_DIR)/rpn-url-ids/"
-DATA_MINZDRAV_DIR = "$(DATA_DIR)/minzdrav/"
+DATA_RPN_DIR = DATA_DIR * "/rpn-url-ids/"
+DATA_MINZDRAV_DIR = DATA_DIR * "/minzdrav/"
 METADATA_DIR = DATA_DIR * "/meta/"
 
 #
@@ -45,13 +46,13 @@ METADATA_DIR = DATA_DIR * "/meta/"
 
 # Cumulative numbers by region come from Minzdrav website (JSON)
 # https://covid19.rosminzdrav.ru/wp-json/api/mapdata/
-INPUT_TOTAL = DATA_MINZDRAV_DIR * "$(tag).json"
+INPUT_TOTAL() = DATA_MINZDRAV_DIR * "$(tag()).json"
 
 # Same as above but for the previous day: to compute new cases for today ("latests")
-INPUT_TOTAL_PREV = DATA_MINZDRAV_DIR * "$(make_tag(n - Day(1))).json"
+INPUT_TOTAL_PREV() = DATA_MINZDRAV_DIR * "$(make_tag(n() - Day(1))).json"
 
 # Daily data updated manually. Currently just URL IDs of Rospotrednadzor website
-INPUT_RPN = "$(DATA_RPN_DIR)/$(tag)"
+INPUT_RPN() = "$(DATA_RPN_DIR)/$(tag())"
 
 # We use Rospotrebnadzor website links to provide references to 
 # "Authorative Sources". While we use Minzdrav website to get the actual data
@@ -101,7 +102,7 @@ f=Dates.format
 #
 function ref(name :: String, url :: String, title :: String, 
         work :: String = "[[Rospotrebnadzor]] ")
-    today = f(n, "d U Y")
+    today = f(n(), "d U Y")
     "<ref$(name)>{{cite news |title=$(title) |url=$(url) |accessdate=$(today) |work=$(work)|date=$(today)}}</ref>"
 end
 
@@ -113,7 +114,7 @@ function refs(url_id1 :: Int, url_id2 :: Int)
     t1 = "О подтвержденных случаях новой коронавирусной инфекции COVID-2019 в России"
     t2 = "Информационный бюллетень о ситуации и принимаемых мерах по недопущению распространения заболеваний, вызванных новым коронавирусом"
 
-    name1 = " name=\"rus$(lowercase(f(n, "Ud")))\""
+    name1 = " name=\"rus$(lowercase(f(n(), "Ud")))\""
     name2 = ""
 
     ref(name1, url1, t1) * ref(name2, url2, t2)
@@ -160,18 +161,18 @@ function init()
         map(strip, rdft[!,:RegionRu])))
 
     # Region totals for today:
-    dft = JSON.parsefile(INPUT_TOTAL)["Items"]
+    dft = JSON.parsefile(INPUT_TOTAL())["Items"]
     dtotal = Dict([r["LocationName"] => r["Confirmed"] for r in dft])
 
     # Region totals for the previous day
-    dftp = JSON.parsefile(INPUT_TOTAL_PREV)["Items"]
+    dftp = JSON.parsefile(INPUT_TOTAL_PREV())["Items"]
     dtotal_prev = Dict([r["LocationName"] => r["Confirmed"] for r in dftp])
 
     # New ("latest") cases are: today_total - yesterday_total
     dlatest = merge(-, dtotal, dtotal_prev)
 
     # RPN URLs
-    urls_str = open(f -> read(f, String), INPUT_RPN)
+    urls_str = open(f -> read(f, String), INPUT_RPN())
     urls = eval(Base.Meta.parse(urls_str))
     rpn_urls = RospotrebUrlIds(urls...)
     
@@ -197,7 +198,7 @@ end
 #
 
 latest(i :: Inputs, cum :: DailyData) =
-    latest_template(i.data, i.region_names, cum)
+    latest_template(i.data, i.region_names, cum, n())
 
 total(i :: Inputs, cum :: DailyData) =
     total_template(i.data, i.region_names, cum)

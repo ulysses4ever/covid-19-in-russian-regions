@@ -1,4 +1,4 @@
-latest_template(d,r,cum) = """
+latest_template(d, r, cum, n) = """
 !{{nobr|{{abbr|$(f(n, "d U"))|$(f(n, "d U, Y"))}}}}
 <!-- Central -->
 | $(my_get(d, r["Belgorod Oblast"]))
