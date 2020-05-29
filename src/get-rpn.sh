@@ -1,7 +1,7 @@
 #!/bin/bash
-#set -x
+set -x
 mydir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-base="$(mydir)/../data/rpn-url-ids"
+base="${mydir}/../data/rpn-url-ids"
 today="$(date +%m%d)"
 out="${base}/${today}"
 if [ -f "${out}" ]
@@ -15,7 +15,11 @@ urlid1=$(grep "О подтвержденных случаях новой кор�
 urlid2=$(grep "Информационный бюллетень о ситуации и принимаемых мерах по недопущению распространения заболеваний, вызванных новым коронавирусом" index.utf8.html | head -1 | grep -Po "[0-9]{5}")
 rm -f index.html index.utf8.html
 
-if [ "${urlid1}" != "" ] && [ "${urlid2}" != "" ]
+new="(${urlid1}, ${urlid2})"
+yest="$(date +%m%d --date="yesterday")"
+last="${base}/${yest}"
+df=$(echo ${new} | diff - "${last}" | head -1)
+if [ "${urlid1}" != "" ] && [ "${urlid2}" != "" ] && [ "${df}" != ""   ]
 then
-    echo "(${urlid1}, ${urlid2})" > "${out}"
+    echo ${new} > "${out}"
 fi

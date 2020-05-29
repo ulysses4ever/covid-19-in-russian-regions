@@ -43,7 +43,11 @@ We use two data sources:
     under `data/covidMMDD.json`. This is automated by
     [`src/get-minzdrav.sh`](src/get-minzdrav.sh).
 
-3. Load [`src/covid.jl`](src/covid.jl) into Julia and run `main()`.
+3. Load [`src/covid.jl`](src/covid.jl) into Julia and run `main()`. E.g. from the shell:
+
+    ```
+    julia -L src/covid.jl -e 'main()'
+    ```
 
 4. Profit.
 

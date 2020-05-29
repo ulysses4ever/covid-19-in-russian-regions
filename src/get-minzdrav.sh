@@ -1,7 +1,7 @@
 #!/bin/bash
 #set -x
 mydir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-base="$(mydir)/../data/minzdrav"
+base="${mydir}/../data/minzdrav"
 today="$(date +%m%d)"
 out="${base}/${today}.json"
 if [ -f "${out}" ]

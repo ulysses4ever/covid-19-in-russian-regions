@@ -45,10 +45,10 @@ METADATA_DIR = DATA_DIR * "/meta/"
 
 # Cumulative numbers by region come from Minzdrav website (JSON)
 # https://covid19.rosminzdrav.ru/wp-json/api/mapdata/
-INPUT_TOTAL = DATA_MINZDRAV_DIR * "covid$(tag).json"
+INPUT_TOTAL = DATA_MINZDRAV_DIR * "$(tag).json"
 
 # Same as above but for the previous day: to compute new cases for today ("latests")
-INPUT_TOTAL_PREV = DATA_MINZDRAV_DIR * "covid$(make_tag(n - Day(1))).json"
+INPUT_TOTAL_PREV = DATA_MINZDRAV_DIR * "$(make_tag(n - Day(1))).json"
 
 # Daily data updated manually. Currently just URL IDs of Rospotrednadzor website
 INPUT_RPN = "$(DATA_RPN_DIR)/$(tag)"
