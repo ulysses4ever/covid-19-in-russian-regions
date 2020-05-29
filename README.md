@@ -40,7 +40,7 @@ We use two data sources:
     [`src/get-rpn.sh`](src/get-rpn.sh).
     
 2. Download [Minzdrav data](https://covid19.rosminzdrav.ru/wp-json/api/mapdata/) 
-    under `data/covidMMDD.json`. This is automated by
+    under `data/minzdrav/MMDD.json`. This is automated by
     [`src/get-minzdrav.sh`](src/get-minzdrav.sh).
 
 3. Load [`src/covid.jl`](src/covid.jl) into Julia and run `main()`. E.g. from the shell:
