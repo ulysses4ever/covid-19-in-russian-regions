@@ -16,6 +16,7 @@ using Dates
 using DataFrames
 using CSV
 using JSON
+using HTTP
 
 include("$(@__DIR__)/structs.jl")
 include("$(@__DIR__)/templates.jl")
@@ -150,16 +151,16 @@ function get_total(v :: Vector)::Params
     Params(commify(c), commify(r), commify(d))
 end
 
+# Load dictionary of region names
+rdft = CSV.File(METADATA_DIR * "regions-map-minzdrav.csv") |> DataFrame
+rt = Dict(zip(
+    map(strip, rdft[!,:RegionEn]), 
+    map(strip, rdft[!,:RegionRu])))
+
 #
 # Load input data, initialize input structures
 #
 function init()
-    # Load dictionary of region names
-    rdft = CSV.File(METADATA_DIR * "regions-map-minzdrav.csv") |> DataFrame
-    rt = Dict(zip(
-        map(strip, rdft[!,:RegionEn]), 
-        map(strip, rdft[!,:RegionRu])))
-
     # Region totals for today:
     dft = JSON.parsefile(INPUT_TOTAL())["Items"]
     dtotal = Dict([r["LocationName"] => r["Confirmed"] for r in dft])
@@ -191,6 +192,22 @@ function init_global()
     global latest_inp, total_inp, cum = init()
 end
 
+function server()
+    HTTP.serve() do req::HTTP.Request
+        return if req.target == "/"
+            if isfile(INPUT_TOTAL()) && isfile(INPUT_TOTAL_PREV())
+                HTTP.Response(200, resp_html(generate_table()))
+            else
+                HTTP.Response(200,
+                              "COVID-19 data for today is not available in our data sources" *
+                              " (Minzdrav, Rospotrebnadzor) yet")
+            end
+        else
+            HTTP.Response(404)
+        end
+    end
+end
+
 #
 ###########################################################
 #
@@ -203,8 +220,9 @@ latest(i :: Inputs, cum :: DailyData) =
 total(i :: Inputs, cum :: DailyData) =
     total_template(i.data, i.region_names, cum)
 
-function main()
+function generate_table()
     init_global()
-    print(latest(latest_inp, cum))
-    print(total(total_inp, cum))
+    latest(latest_inp, cum) * total(total_inp, cum)
 end
+
+main() = print(generate_table())

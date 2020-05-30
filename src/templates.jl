@@ -207,3 +207,14 @@ total_template(d,r,cum) = """
 ! {{n/a}}
 ! <ref name="Rus_Ministry">{{cite web |title=Информация о новой коронавирусной инфекции |trans-title=Information on Novel Coronavirus Infection |url=https://www.rosminzdrav.ru/ministry/covid19 |publisher=[[Ministry of Health (Russia)|Ministry of Health]] |accessdate=19 May 2020 |language=ru}}</ref><ref name="Rus_Taskforce">{{cite web |title=Оперативные данные|trans-title=Operational data| url=https://xn--80aesfpebagmfblc0a.xn--p1ai/ |website=Стопкоронавирус.рф |accessdate=19 May 2020 |language=ru}}</ref>
 """
+
+resp_html(body :: String) = """
+<head>
+<meta charset="UTF-8">
+</head>
+<body>
+<pre>
+$(replace(body, "<" => "&lt;"))
+</pre>
+</body>
+"""

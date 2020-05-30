@@ -11,6 +11,8 @@ The [`src/covid.jl`](src/covid.jl) Julia script generates relevant table rows
 provided the data is available in [`data`](data) for desired date.
 More comments on usage and the data formats are provided below and inside the script.
 
+The result of executing the script is served on [julia.prl.fit.cvut.cz/covid](https://julia.prl.fit.cvut.cz/covid)
+(see function `server` in [`src/covid.jl`](src/covid.jl)).
 
 ## Datasets
 
@@ -56,10 +58,10 @@ We use two data sources:
 
 The main script assumes Julia 1+ with the following packages:
 
-* Dates
 * DataFrames
 * CSV
 * JSON
+* HTTP
 
 The auxiliary Bash scripts assume standard Unix shell environment + `iconv`.
 
