@@ -15,8 +15,9 @@ last="${base}/${yest}.json"
 
 wget https://covid19.rosminzdrav.ru/wp-json/api/mapdata/ -O "${tmp}"
 
-df=$(diff "${last}" "${tmp}" | head -1)
-if [ "${df}" == "" ]
+last_text=$(${mydir}/normalize-minzdrav.sh ${last})
+tmp_text=$(${mydir}/normalize-minzdrav.sh ${tmp})
+if [ "${last_text}" == "${tmp_text}" ]
 then
     rm "${tmp}"
 else
