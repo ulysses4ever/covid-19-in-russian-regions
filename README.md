@@ -54,7 +54,13 @@ We use two data sources:
 4. Profit.
 
 
-## Prerequisites
+To run the server:
+
+```
+nohup julia -L covid.jl -e 'server()' 2>&1 &
+```
+
+## Dependencies
 
 The main script assumes Julia 1+ with the following packages:
 

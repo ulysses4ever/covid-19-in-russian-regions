@@ -12,11 +12,13 @@
 # For convenience, `main` prints results of both, `latest` and `total`
 #
 
+@info "Loading package dependencies..."
 using Dates
 using DataFrames
 using CSV
 using JSON
 using HTTP
+@info "... done"
 
 include("$(@__DIR__)/structs.jl")
 include("$(@__DIR__)/templates.jl")
@@ -35,6 +37,9 @@ DATA_DIR = "$(@__DIR__)/../data/"
 DATA_RPN_DIR = DATA_DIR * "/rpn-url-ids/"
 DATA_MINZDRAV_DIR = DATA_DIR * "/minzdrav/"
 METADATA_DIR = DATA_DIR * "/meta/"
+
+# The key Minzdrav uses to store number of tests
+TESTS_LABEL = "No region speified"
 
 #
 ###########################################################
@@ -129,8 +134,7 @@ end
 # See Minzdrav's JSON for full description
 function get_tests(v :: Vector)
     id = findfirst(d ->
-        d["LocationName"] ==   "No region speified", v)
-    # weird but that's the key ^ Minzdrav stores the number of test under
+        d["LocationName"] == TESTS_LABEL, v)
 
     commify(v[id]["Observations"])
 end
@@ -143,19 +147,13 @@ end
 function get_total(v :: Vector)::Params
     c=0; r=0; d=0
     for x in v
-        if x["LocationName"] == "No region speified"
+        if x["LocationName"] == TESTS_LABEL
             continue
         end
         c += x["Confirmed"]; r += x["Recovered"]; d += x["Deaths"]
     end
     Params(commify(c), commify(r), commify(d))
 end
-
-# Load dictionary of region names
-rdft = CSV.File(METADATA_DIR * "regions-map-minzdrav.csv") |> DataFrame
-rt = Dict(zip(
-    map(strip, rdft[!,:RegionEn]), 
-    map(strip, rdft[!,:RegionRu])))
 
 #
 # Load input data, initialize input structures
@@ -176,13 +174,19 @@ function init()
     urls_str = open(f -> read(f, String), INPUT_RPN())
     urls = eval(Base.Meta.parse(urls_str))
     rpn_urls = RospotrebUrlIds(urls...)
+
+    # Get number of tests and check if it's been updated
+    tests = get_tests(dft)
+    if tests == get_tests(dftp)
+        error("The number of tests has not been renewed by Minzdrav yet")
+    end
     
     # All-Russia totals (as opposed to region-wise totals stored in `dtotal`)
     total_cum = get_total(dft)
     cum = DailyData(
         new = total_cum - get_total(dftp),
         total = total_cum,
-        total_tests = get_tests(dft),
+        total_tests = tests,
         rpn = rpn_urls)
 
     (Inputs(dlatest, rt), Inputs(dtotal, rt), cum)
@@ -192,16 +196,50 @@ function init_global()
     global latest_inp, total_inp, cum = init()
 end
 
+#
+# The "latest" part of the table
+#
+latest(i :: Inputs, cum :: DailyData) =
+    latest_template(i.data, i.region_names, cum, n())
+
+#
+# The "total" part of the table
+#
+total(i :: Inputs, cum :: DailyData) =
+    total_template(i.data, i.region_names, cum)
+
+#
+# Check that the data available and generate the both rows
+# of the table
+#
+function generate_table()
+    try
+        if !isfile(INPUT_TOTAL()) || !isfile(INPUT_TOTAL_PREV())
+            return "COVID-19 data for today is not available in our data " *
+                   "sources (Minzdrav, Rospotrebnadzor) yet\n"
+        end
+        init_global()
+        latest(latest_inp, cum) * total(total_inp, cum)
+    catch e
+        if isa(e, ErrorException)
+            e.msg
+        else
+            "Unknown error:\n$(e)\n"
+        end
+    end
+end
+
+#
+# Serve table via HTTP
+#
 function server()
     HTTP.serve() do req::HTTP.Request
+        @info "Server received a request with target $(req.target)"
         return if req.target == "/"
-            if isfile(INPUT_TOTAL()) && isfile(INPUT_TOTAL_PREV())
-                HTTP.Response(200, resp_html(generate_table()))
-            else
-                HTTP.Response(200,
-                              "COVID-19 data for today is not available in our data sources" *
-                              " (Minzdrav, Rospotrebnadzor) yet")
-            end
+            @info "Generating response..."
+            r = HTTP.Response(200, resp_html(generate_table()))
+            @info "... done"
+            r
         else
             HTTP.Response(404)
         end
@@ -214,15 +252,11 @@ end
 ### Main
 #
 
-latest(i :: Inputs, cum :: DailyData) =
-    latest_template(i.data, i.region_names, cum, n())
-
-total(i :: Inputs, cum :: DailyData) =
-    total_template(i.data, i.region_names, cum)
-
-function generate_table()
-    init_global()
-    latest(latest_inp, cum) * total(total_inp, cum)
-end
-
 main() = print(generate_table())
+
+@info "Loading dictionary of region names..."
+rdft = CSV.File(METADATA_DIR * "regions-map-minzdrav.csv") |> DataFrame
+rt = Dict(zip(
+    map(strip, rdft[!,:RegionEn]), 
+    map(strip, rdft[!,:RegionRu])))
+@info "... done"
