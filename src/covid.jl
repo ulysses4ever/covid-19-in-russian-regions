@@ -31,7 +31,6 @@ n()=now() # - Day(1)
 ### Dull constants (e.g. paths)
 
 make_tag(d :: DateTime) = Dates.format(d, "mmdd")
-tag() = make_tag(n())
 
 DATA_DIR = "$(@__DIR__)/../data/"
 DATA_RPN_DIR = DATA_DIR * "/rpn-url-ids/"
@@ -52,10 +51,9 @@ TESTS_LABEL = "No region speified"
 
 # Cumulative numbers by region come from Minzdrav website (JSON)
 # https://covid19.rosminzdrav.ru/wp-json/api/mapdata/
-INPUT_TOTAL() = DATA_MINZDRAV_DIR * "$(tag()).json"
-
-# Same as above but for the previous day: to compute new cases for today ("latests")
-INPUT_TOTAL_PREV() = DATA_MINZDRAV_DIR * "$(make_tag(n() - Day(1))).json"
+# We normally need data for today and yesterday (to compute new cases)
+DATA_FILE(when :: DateTime, format :: String) =
+    DATA_MINZDRAV_DIR * "$(make_tag(when)).$(format)"
 
 # Daily data updated manually. Currently just URL IDs of Rospotrednadzor website
 INPUT_RPN() = "$(DATA_RPN_DIR)/$(tag())"
@@ -156,16 +154,74 @@ function get_total(v :: Vector)::Params
 end
 
 #
+# load_* function return a pair of data:
+# 1) data-all: a vector of dictionaries with at least the following keys:
+#    LocationName, Confirmed, Recovered, Deaths;
+# 2) data-cases: a dictionary from a location name tothe total number of cases
+#    in that location.
+#
+
+USE_MINZDRAV = 1
+USE_STOPKORONA = 2
+
+all_to_cases(dft :: Vector{Dict{K,V}} where K where V) :: Dict =
+    Dict([r["LocationName"] => r["Confirmed"] for r in dft])
+
+function load_minzdrav(when :: DateTime)
+    dft = JSON.parsefile(DATA_FILE(when, "json"))["Items"]
+    dtotal = all_to_cases(dft)
+    (dft, dtotal)
+end
+
+function load_stopkorona(when :: DateTime)
+    csv = CSV.File(DATA_FILE(when,"csv"))
+    regmap_stopkor_to_canon =
+        Dict(zip(r_stopkor[!,:RegionRu], r_stopkor[!,:RegionEn]))
+    dft = [
+        Dict(
+                "LocationName" => rt[regmap_stopkor_to_canon[strip(row.LocationName)]],
+                "Confirmed" => row.Confirmed,
+                "Recovered" => row.Recovered,
+                "Deaths" => row.Deaths
+        )
+        for row in csv
+    ]
+
+    dtotal = all_to_cases(dft)
+    
+    # Handle tests
+    tests = open(f -> parse(Int,read(f, String)), DATA_FILE(when,"tests.txt"))
+    push!(dft,
+          Dict(
+              "LocationName" => TESTS_LABEL,
+              "Observations" => tests
+          )
+    )
+
+    (dft, dtotal)
+end
+
+load_data(mode :: Int, when :: DateTime = n()) =
+    if mode == USE_MINZDRAV
+        load_minzdrav(when)
+    elseif mode == USE_STOPKORONA
+        load_stopkorona(when)
+    else
+        error("Unknown mode")
+    end
+ 
+
+#
 # Load input data, initialize input structures
 #
 function init()
-    # Region totals for today:
-    dft = JSON.parsefile(INPUT_TOTAL())["Items"]
-    dtotal = Dict([r["LocationName"] => r["Confirmed"] for r in dft])
+    # Which mode we use to load inputs
+    # TODO: Autodetect instead of hardcode
+    mode = USE_STOPKORONA
 
-    # Region totals for the previous day
-    dftp = JSON.parsefile(INPUT_TOTAL_PREV())["Items"]
-    dtotal_prev = Dict([r["LocationName"] => r["Confirmed"] for r in dftp])
+    # Region totals for today and yesterday:
+    dft, dtotal = load_data(mode, n())
+    dftp, dtotal_prev = load_data(mode, n() - Day(1))
 
     # New ("latest") cases are: today_total - yesterday_total
     dlatest = merge(-, dtotal, dtotal_prev)
@@ -259,4 +315,5 @@ rdft = CSV.File(METADATA_DIR * "regions-map-minzdrav.csv") |> DataFrame
 rt = Dict(zip(
     map(strip, rdft[!,:RegionEn]), 
     map(strip, rdft[!,:RegionRu])))
+r_stopkor = CSV.File(METADATA_DIR * "regions-map-stopkorona.csv") |> DataFrame
 @info "... done"
