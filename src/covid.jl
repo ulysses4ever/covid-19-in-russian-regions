@@ -41,6 +41,21 @@ METADATA_DIR = DATA_DIR * "/meta/"
 TESTS_LABEL = "No region speified"
 
 #
+# We had to introduce the concept of mode because Minzdrav suddently stopped
+# to publish the data in JSON on their website since June 6th.
+# We switched to use the стопкоронавирус.рф data, which we store in CSV,
+# for the time being.
+# Plus we manually store the number of tests from Roskomnadzor site.
+# We still use `data/minzdrav` dir for those data for convenience.
+# See .csv and .tests.txt file respectively.
+#
+
+USE_MINZDRAV = 1
+USE_STOPKORONA = 2
+
+mode = USE_STOPKORONA
+
+#
 ###########################################################
 #
 ### Inputs
@@ -56,7 +71,7 @@ DATA_FILE(when :: DateTime, format :: String) =
     DATA_MINZDRAV_DIR * "$(make_tag(when)).$(format)"
 
 # Daily data updated manually. Currently just URL IDs of Rospotrednadzor website
-INPUT_RPN() = "$(DATA_RPN_DIR)/$(tag())"
+INPUT_RPN(when :: DateTime) = "$(DATA_RPN_DIR)/$(make_tag(when))"
 
 # We use Rospotrebnadzor website links to provide references to 
 # "Authorative Sources". While we use Minzdrav website to get the actual data
@@ -161,20 +176,20 @@ end
 #    in that location.
 #
 
-USE_MINZDRAV = 1
-USE_STOPKORONA = 2
+data_format = ["json", "csv"]
+tests_format = ["json", "tests.txt"]
 
 all_to_cases(dft :: Vector{Dict{K,V}} where K where V) :: Dict =
     Dict([r["LocationName"] => r["Confirmed"] for r in dft])
 
 function load_minzdrav(when :: DateTime)
-    dft = JSON.parsefile(DATA_FILE(when, "json"))["Items"]
+    dft = JSON.parsefile(DATA_FILE(when, data_format[mode]))["Items"]
     dtotal = all_to_cases(dft)
     (dft, dtotal)
 end
 
 function load_stopkorona(when :: DateTime)
-    csv = CSV.File(DATA_FILE(when,"csv"))
+    csv = CSV.File(DATA_FILE(when, data_format[mode]))
     regmap_stopkor_to_canon =
         Dict(zip(r_stopkor[!,:RegionRu], r_stopkor[!,:RegionEn]))
     dft = [
@@ -190,7 +205,7 @@ function load_stopkorona(when :: DateTime)
     dtotal = all_to_cases(dft)
     
     # Handle tests
-    tests = open(f -> parse(Int,read(f, String)), DATA_FILE(when,"tests.txt"))
+    tests = open(f -> parse(Int,read(f, String)), DATA_FILE(when, tests_format[mode]))
     push!(dft,
           Dict(
               "LocationName" => TESTS_LABEL,
@@ -209,25 +224,23 @@ load_data(mode :: Int, when :: DateTime = n()) =
     else
         error("Unknown mode")
     end
- 
 
 #
 # Load input data, initialize input structures
 #
-function init()
+function init(when :: DateTime)
     # Which mode we use to load inputs
     # TODO: Autodetect instead of hardcode
-    mode = USE_STOPKORONA
 
     # Region totals for today and yesterday:
-    dft, dtotal = load_data(mode, n())
-    dftp, dtotal_prev = load_data(mode, n() - Day(1))
+    dft, dtotal = load_data(mode, when)
+    dftp, dtotal_prev = load_data(mode, when - Day(1))
 
     # New ("latest") cases are: today_total - yesterday_total
     dlatest = merge(-, dtotal, dtotal_prev)
 
     # RPN URLs
-    urls_str = open(f -> read(f, String), INPUT_RPN())
+    urls_str = open(f -> read(f, String), INPUT_RPN(when))
     urls = eval(Base.Meta.parse(urls_str))
     rpn_urls = RospotrebUrlIds(urls...)
 
@@ -248,8 +261,8 @@ function init()
     (Inputs(dlatest, rt), Inputs(dtotal, rt), cum)
 end
 
-function init_global()
-    global latest_inp, total_inp, cum = init()
+function init_global(when :: DateTime)
+    global latest_inp, total_inp, cum = init(when)
 end
 
 #
@@ -264,17 +277,24 @@ latest(i :: Inputs, cum :: DailyData) =
 total(i :: Inputs, cum :: DailyData) =
     total_template(i.data, i.region_names, cum)
 
+
+check_data_available(when :: DateTime) =
+    isfile(DATA_FILE(when, data_format[mode])) &&
+    isfile(DATA_FILE(when, tests_format[mode])) &&
+    isfile(INPUT_RPN(when))
+
 #
 # Check that the data available and generate the both rows
 # of the table
 #
 function generate_table()
     try
-        if !isfile(INPUT_TOTAL()) || !isfile(INPUT_TOTAL_PREV())
+        when = n()
+        if !check_data_available(when)
             return "COVID-19 data for today is not available in our data " *
                    "sources (Minzdrav, Rospotrebnadzor) yet\n"
         end
-        init_global()
+        init_global(when)
         latest(latest_inp, cum) * total(total_inp, cum)
     catch e
         if isa(e, ErrorException)

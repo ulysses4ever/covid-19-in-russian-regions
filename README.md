@@ -26,6 +26,9 @@ We use two data sources:
 2. Minzdrav publishes total numbers in regions in the form of JSON daily.
    The new data unfortunately overwrites the old data
    [using the same URL](https://covid19.rosminzdrav.ru/wp-json/api/mapdata/).
+   
+   **UPD**: Minzdrav suddendly stopped doing that since June 6th. We replace it
+   with [стопкоронавирус.рф](https://стопкоронавирус.рф/information/).
 
 ## User guide
 
@@ -44,6 +47,11 @@ We use two data sources:
 2. Download [Minzdrav data](https://covid19.rosminzdrav.ru/wp-json/api/mapdata/) 
     under `data/minzdrav/MMDD.json`. This is automated by
     [`src/get-minzdrav.sh`](src/get-minzdrav.sh).
+	
+	**UPD**:
+	Alternatively, store data from [стопкоронавирус.рф](https://стопкоронавирус.рф/information/)
+	under `data/minzdrav/MMDD.csv` and the total number of tests from Roskomnadzor link (2) (see
+	previous point) under `data/minzdrav/MMDD.tests.txt`.
 
 3. Load [`src/covid.jl`](src/covid.jl) into Julia and run `main()`. E.g. from the shell:
 
