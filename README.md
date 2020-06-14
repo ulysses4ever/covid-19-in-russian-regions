@@ -27,8 +27,8 @@ We use two data sources:
    The new data unfortunately overwrites the old data
    [using the same URL](https://covid19.rosminzdrav.ru/wp-json/api/mapdata/).
    
-   **UPD**: Minzdrav suddendly stopped doing that since June 6th. We replace it
-   with [стопкоронавирус.рф](https://стопкоронавирус.рф/information/).
+   Sometimes Minzdrav suddendly stops doing (e.g. June 6th through 12th). In that case,
+   we replace it with [стопкоронавирус.рф](https://стопкоронавирус.рф/information/).
 
 ## User guide
 
@@ -48,10 +48,10 @@ We use two data sources:
     under `data/minzdrav/MMDD.json`. This is automated by
     [`src/get-minzdrav.sh`](src/get-minzdrav.sh).
 	
-	**UPD**:
 	Alternatively, store data from [стопкоронавирус.рф](https://стопкоронавирус.рф/information/)
 	under `data/minzdrav/MMDD.csv` and the total number of tests from Roskomnadzor link (2) (see
-	previous point) under `data/minzdrav/MMDD.tests.txt`.
+	previous point) under `data/minzdrav/MMDD.tests.txt`. You will need to fiddle with the `mode`
+	variable in `covid.jl` (see comments) to make it switch between the input formats, unfortunately.
 
 3. Load [`src/covid.jl`](src/covid.jl) into Julia and run `main()`. E.g. from the shell:
 
@@ -78,4 +78,3 @@ The main script assumes Julia 1+ with the following packages:
 * HTTP
 
 The auxiliary Bash scripts assume standard Unix shell environment + `iconv`.
-

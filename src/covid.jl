@@ -42,7 +42,8 @@ TESTS_LABEL = "No region speified"
 
 #
 # We had to introduce the concept of mode because Minzdrav suddently stopped
-# to publish the data in JSON on their website since June 6th.
+# publishing the data in JSON on their website since June 6th.
+# (Later, they resumed, but we keep the alternative mode for future.)
 # We switched to use the стопкоронавирус.рф data, which we store in CSV,
 # for the time being.
 # Plus we manually store the number of tests from Roskomnadzor site.
@@ -53,7 +54,7 @@ TESTS_LABEL = "No region speified"
 USE_MINZDRAV = 1
 USE_STOPKORONA = 2
 
-mode = USE_STOPKORONA
+mode = USE_MINZDRAV
 
 #
 ###########################################################
@@ -179,17 +180,17 @@ end
 data_format = ["json", "csv"]
 tests_format = ["json", "tests.txt"]
 
-all_to_cases(dft :: Vector{Dict{K,V}} where K where V) :: Dict =
+all_to_cases(dft :: Vector) :: Dict =
     Dict([r["LocationName"] => r["Confirmed"] for r in dft])
 
 function load_minzdrav(when :: DateTime)
-    dft = JSON.parsefile(DATA_FILE(when, data_format[mode]))["Items"]
+    dft = JSON.parsefile(DATA_FILE(when, data_format[ #= mode: =# USE_MINZDRAV]))["Items"]
     dtotal = all_to_cases(dft)
     (dft, dtotal)
 end
 
 function load_stopkorona(when :: DateTime)
-    csv = CSV.File(DATA_FILE(when, data_format[mode]))
+    csv = CSV.File(DATA_FILE(when, data_format[ #= mode: =# USE_STOPKORONA]))
     regmap_stopkor_to_canon =
         Dict(zip(r_stopkor[!,:RegionRu], r_stopkor[!,:RegionEn]))
     dft = [
