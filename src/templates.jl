@@ -1,3 +1,31 @@
+#
+# Generate references to Rospotrebnadzor website
+#
+function ref(name :: String, url :: String, title :: String, 
+        work :: String = "[[Rospotrebnadzor]] ")
+    today = f(n(), "d U Y")
+    "<ref$(name)>{{cite news |title=$(title) |url=$(url) |accessdate=$(today) |work=$(work)|date=$(today)}}</ref>"
+end
+
+function refs(url_id1 :: Int, url_id2 :: Int)
+    rospotreb_url_base="https://rospotrebnadzor.ru/about/info/news/news_details.php?ELEMENT_ID="
+    url1 = "$(rospotreb_url_base)$(url_id1)"
+    url2 = "$(rospotreb_url_base)$(url_id2)"
+
+    t1 = "О подтвержденных случаях новой коронавирусной инфекции COVID-2019 в России"
+    t2 = "Информационный бюллетень о ситуации и принимаемых мерах по недопущению распространения заболеваний, вызванных новым коронавирусом"
+
+    name1 = " name=\"rus$(lowercase(f(n(), "Ud")))\""
+    name2 = ""
+
+    ref(name1, url1, t1) * ref(name2, url2, t2)
+    #"<ref name=\"Rus_Ministry\" />" 
+end
+
+#
+# Generate latest and total rows for the Wikipedia table
+#
+
 latest_template(d, r, cum, n) = """
 !{{nobr|{{abbr|$(f(n, "d U"))|$(f(n, "d U, Y"))}}}}
 <!-- Central -->

@@ -41,6 +41,8 @@ METADATA_DIR = DATA_DIR * "/meta/"
 TESTS_LABEL = "No region speified"
 
 #
+# Note [Data mode]
+#
 # We had to introduce the concept of mode because Minzdrav suddently stopped
 # publishing the data in JSON on their website since June 6th.
 # (Later, they resumed, but we keep the alternative mode for future.)
@@ -50,11 +52,11 @@ TESTS_LABEL = "No region speified"
 # We still use `data/minzdrav` dir for those data for convenience.
 # See .csv and .tests.txt file respectively.
 #
+# See also `detect_mode` below.
+#
 
 USE_MINZDRAV = 1
 USE_STOPKORONA = 2
-
-mode = USE_MINZDRAV
 
 #
 ###########################################################
@@ -116,30 +118,6 @@ function my_get(d, k)
 end
 
 f=Dates.format
-
-#
-# Generate references to Rospotrebnadzor website
-#
-function ref(name :: String, url :: String, title :: String, 
-        work :: String = "[[Rospotrebnadzor]] ")
-    today = f(n(), "d U Y")
-    "<ref$(name)>{{cite news |title=$(title) |url=$(url) |accessdate=$(today) |work=$(work)|date=$(today)}}</ref>"
-end
-
-function refs(url_id1 :: Int, url_id2 :: Int)
-    rospotreb_url_base="https://rospotrebnadzor.ru/about/info/news/news_details.php?ELEMENT_ID="
-    url1 = "$(rospotreb_url_base)$(url_id1)"
-    url2 = "$(rospotreb_url_base)$(url_id2)"
-
-    t1 = "О подтвержденных случаях новой коронавирусной инфекции COVID-2019 в России"
-    t2 = "Информационный бюллетень о ситуации и принимаемых мерах по недопущению распространения заболеваний, вызванных новым коронавирусом"
-
-    name1 = " name=\"rus$(lowercase(f(n(), "Ud")))\""
-    name2 = ""
-
-    ref(name1, url1, t1) * ref(name2, url2, t2)
-    #"<ref name=\"Rus_Ministry\" />" 
-end
 
 #
 # Get the total number of tests performed from Minzdrav's dataset
@@ -206,7 +184,7 @@ function load_stopkorona(when :: DateTime)
     dtotal = all_to_cases(dft)
     
     # Handle tests
-    tests = open(f -> parse(Int,read(f, String)), DATA_FILE(when, tests_format[mode]))
+    tests = open(f -> parse(Int,read(f, String)), DATA_FILE(when, tests_format[USE_STOPKORONA]))
     push!(dft,
           Dict(
               "LocationName" => TESTS_LABEL,
@@ -217,7 +195,29 @@ function load_stopkorona(when :: DateTime)
     (dft, dtotal)
 end
 
-load_data(mode :: Int, when :: DateTime = n()) =
+function detect_mode(when :: DateTime)
+
+    if ! isfile(INPUT_RPN(when))
+        error("No Rospotrebnadzor data for $(when)\n")
+    end
+
+    if isfile(DATA_FILE(when, data_format[USE_STOPKORONA]))
+        if !isfile(DATA_FILE(when, tests_format[USE_STOPKORONA]))
+            error("We should use Stopkoronavirus.rf data but have no tests count\n")
+        end
+        return USE_STOPKORONA
+    end
+
+    if isfile(DATA_FILE(when, data_format[USE_MINZDRAV]))
+        return USE_MINZDRAV
+    end
+    
+    error("COVID-19 data for today is not available in our data " *
+          "sources (Minzdrav, Rospotrebnadzor) yet\n")
+end
+
+function load_data(when :: DateTime)
+    mode = detect_mode(when)
     if mode == USE_MINZDRAV
         load_minzdrav(when)
     elseif mode == USE_STOPKORONA
@@ -225,6 +225,7 @@ load_data(mode :: Int, when :: DateTime = n()) =
     else
         error("Unknown mode")
     end
+end
 
 #
 # Load input data, initialize input structures
@@ -234,8 +235,8 @@ function init(when :: DateTime)
     # TODO: Autodetect instead of hardcode
 
     # Region totals for today and yesterday:
-    dft, dtotal = load_data(mode, when)
-    dftp, dtotal_prev = load_data(mode, when - Day(1))
+    dftp, dtotal_prev = load_data(when - Day(1))
+    dft, dtotal = load_data(when)
 
     # New ("latest") cases are: today_total - yesterday_total
     dlatest = merge(-, dtotal, dtotal_prev)
@@ -278,32 +279,22 @@ latest(i :: Inputs, cum :: DailyData) =
 total(i :: Inputs, cum :: DailyData) =
     total_template(i.data, i.region_names, cum)
 
-
-check_data_available(when :: DateTime) =
-    isfile(DATA_FILE(when, data_format[mode])) &&
-    isfile(DATA_FILE(when, tests_format[mode])) &&
-    isfile(INPUT_RPN(when))
-
 #
 # Check that the data available and generate the both rows
 # of the table
 #
 function generate_table()
-    try
+#    try
         when = n()
-        if !check_data_available(when)
-            return "COVID-19 data for today is not available in our data " *
-                   "sources (Minzdrav, Rospotrebnadzor) yet\n"
-        end
         init_global(when)
         latest(latest_inp, cum) * total(total_inp, cum)
-    catch e
-        if isa(e, ErrorException)
-            e.msg
-        else
-            "Unknown error:\n$(e)\n"
-        end
-    end
+    # catch e
+    #     if isa(e, ErrorException)
+    #         e.msg
+    #     else
+    #         "Unknown error:\n$(e)\n"
+    #     end
+    # end
 end
 
 #
