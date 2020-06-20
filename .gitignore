@@ -1,8 +1,8 @@
 src/nohup.out
 misc
+src/push.sh
 data/minzdrav/0606.json
 data/minzdrav/0607.json
 data/minzdrav/0608.json
 data/minzdrav/0609.json
-data/minzdrav/0620.json
 *~

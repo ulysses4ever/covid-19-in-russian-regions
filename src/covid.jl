@@ -198,7 +198,7 @@ end
 function detect_mode(when :: DateTime)
 
     if ! isfile(INPUT_RPN(when))
-        error("No Rospotrebnadzor data for $(when)\n")
+        error("No Rospotrebnadzor data for $(Dates.format(when, "yyyy-mm-dd"))\n")
     end
 
     if isfile(DATA_FILE(when, data_format[USE_STOPKORONA]))
@@ -284,17 +284,17 @@ total(i :: Inputs, cum :: DailyData) =
 # of the table
 #
 function generate_table()
-#    try
+    try
         when = n()
         init_global(when)
         latest(latest_inp, cum) * total(total_inp, cum)
-    # catch e
-    #     if isa(e, ErrorException)
-    #         e.msg
-    #     else
-    #         "Unknown error:\n$(e)\n"
-    #     end
-    # end
+    catch e
+        if isa(e, ErrorException)
+            e.msg
+        else
+            "Unknown error:\n$(e)\n"
+        end
+    end
 end
 
 #
