@@ -27,7 +27,7 @@ end
 #
 
 latest_template(d, r, cum, n) = """
-!{{nobr|{{abbr|$(f(n, "d U"))|$(f(n, "d U, Y"))}}}}
+!{{nobr|{{abbr|$(f(n, "d")) $(f(n, "U")[1:3])|$(f(n, "d U, Y"))}}}}
 <!-- Central -->
 | $(my_get(d, r["Belgorod Oblast"]))
 | $(my_get(d, r["Bryansk Oblast"]))
