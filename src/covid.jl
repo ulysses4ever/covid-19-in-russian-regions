@@ -99,7 +99,7 @@ INPUT_RPN(when :: DateTime) = "$(DATA_RPN_DIR)/$(make_tag(when))"
 commify(n :: Int) = commify("$n")
 function commify(s :: String)
     n = length(s)
-    #@assert all(isdigit, s) s
+    @assert all(isdigit, s) s
     comma_count = div(n - 1, 3) # 3 is magic: 
                                 # we like to put things after every 3 digits!
     res = ""
@@ -286,17 +286,17 @@ total(i :: Inputs, cum :: DailyData) =
 # of the table
 #
 function generate_table()
-#    try
+    try
         when = n()
         init_global(when)
         latest(latest_inp, cum) * total(total_inp, cum)
-    # catch e
-    #     if isa(e, ErrorException)
-    #         e.msg
-    #     else
-    #         "Unknown error:\n$(e)\n"
-    #     end
-    # end
+    catch e
+        if isa(e, ErrorException)
+            e.msg
+        else
+            "Unknown error:\n$(e)\n"
+        end
+    end
 end
 
 #
