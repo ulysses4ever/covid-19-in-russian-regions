@@ -149,6 +149,7 @@ end
 
 function get_days_back(query :: Union{SubString,String}) :: Int
     def=Dict("d"=>"1")
+    m=Dict{String,String}()
     try
         params = Dict(split.(split(query, "&"), Ref("=")))
         m = merge((d,n) -> n, def, params)
@@ -304,12 +305,12 @@ function generate_table(days_back :: Int = 1)
         for d in 1:(d-1)
             day = when - Day(d)
             (lat,_tot,cum) = init(day)
-            row = latest(lat,cum,day)
+            row = latest(lat, cum, day)
             push!(prev, row)
         end
         init_global(when)
         join(reverse(prev)) *
-            latest(latest_inp, cum) *
+            latest(latest_inp, cum, when) *
             total(total_inp, cum)
     catch e
         if isa(e, ErrorException)
