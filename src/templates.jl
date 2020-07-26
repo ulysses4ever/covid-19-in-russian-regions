@@ -1,13 +1,18 @@
 #
 # Generate references to Rospotrebnadzor website
 #
-function ref(name :: String, url :: String, title :: String, 
-        work :: String = "[[Rospotrebnadzor]] ")
-    today = f(n(), "d U Y")
+function ref(
+    name :: String,
+    url :: String,
+    title :: String,
+    when :: DateTime,
+    work :: String = "[[Rospotrebnadzor]] ")
+    
+    today = f(when, "d U Y")
     "<ref$(name)>{{cite news |title=$(title) |url=$(url) |accessdate=$(today) |work=$(work)|date=$(today)}}</ref>"
 end
 
-function refs(url_id1 :: Int, url_id2 :: Int)
+function refs(url_id1 :: Int, url_id2 :: Int, when :: DateTime)
     rospotreb_url_base="https://rospotrebnadzor.ru/about/info/news/news_details.php?ELEMENT_ID="
     url1 = "$(rospotreb_url_base)$(url_id1)"
     url2 = "$(rospotreb_url_base)$(url_id2)"
@@ -15,10 +20,10 @@ function refs(url_id1 :: Int, url_id2 :: Int)
     t1 = "О подтвержденных случаях новой коронавирусной инфекции COVID-2019 в России"
     t2 = "Информационный бюллетень о ситуации и принимаемых мерах по недопущению распространения заболеваний, вызванных новым коронавирусом"
 
-    name1 = " name=\"rus$(lowercase(f(n(), "Ud")))\""
+    name1 = " name=\"rus$(lowercase(f(when, "Ud")))\""
     name2 = ""
 
-    ref(name1, url1, t1) * ref(name2, url2, t2)
+    ref(name1, url1, t1, when) * ref(name2, url2, t2, when)
     #"<ref name=\"Rus_Ministry\" />" 
 end
 
@@ -26,8 +31,7 @@ end
 # Generate latest and total rows for the Wikipedia table
 #
 
-latest_template(d, r, cum, n) = """
-!{{nobr|{{abbr|$(f(n, "d")) $(f(n, "U")[1:3])|$(f(n, "d U, Y"))}}}}
+latest_template(d, r, cum, n) = """!{{nobr|{{abbr|$(f(n, "d")) $(f(n, "U")[1:3])|$(f(n, "d U, Y"))}}}}
 <!-- Central -->
 | $(my_get(d, r["Belgorod Oblast"]))
 | $(my_get(d, r["Bryansk Oblast"]))
@@ -129,7 +133,7 @@ latest_template(d, r, cum, n) = """
 ! $(cum.new.deaths)
 ! $(cum.total.deaths)
 | $(cum.total_tests)
-| $(refs(cum.rpn.id1, cum.rpn.id2))
+| $(refs(cum.rpn.id1, cum.rpn.id2, n))
 |-
 """
 
@@ -244,5 +248,4 @@ resp_html(body :: String) = """
 <pre>
 $(replace(body, "<" => "&lt;"))
 </pre>
-</body>
-"""
+</body>"""

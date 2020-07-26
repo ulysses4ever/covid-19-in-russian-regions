@@ -147,6 +147,17 @@ function get_total(v :: Vector)::Params
     Params(commify(c), commify(r), commify(d))
 end
 
+function get_days_back(query :: Union{SubString,String}) :: Int
+    def=Dict("d"=>"1")
+    try
+        params = Dict(split.(split(query, "&"), Ref("=")))
+        m = merge((d,n) -> n, def, params)
+    catch
+        m = def
+    end
+    parse(Int, m["d"])
+end
+
 #
 ###########################################################
 #
@@ -272,8 +283,8 @@ end
 #
 # The "latest" part of the table
 #
-latest(i :: Inputs, cum :: DailyData) =
-    latest_template(i.data, i.region_names, cum, n())
+latest(i :: Inputs, cum :: DailyData, when :: DateTime) =
+    latest_template(i.data, i.region_names, cum, when)
 
 #
 # The "total" part of the table
@@ -285,11 +296,21 @@ total(i :: Inputs, cum :: DailyData) =
 # Check that the data available and generate the both rows
 # of the table
 #
-function generate_table()
-    try
+function generate_table(days_back :: Int = 1)
+    try                         
+        d = days_back
         when = n()
+        prev = String[]
+        for d in 1:(d-1)
+            day = when - Day(d)
+            (lat,_tot,cum) = init(day)
+            row = latest(lat,cum,day)
+            push!(prev, row)
+        end
         init_global(when)
-        latest(latest_inp, cum) * total(total_inp, cum)
+        join(reverse(prev)) *
+            latest(latest_inp, cum) *
+            total(total_inp, cum)
     catch e
         if isa(e, ErrorException)
             e.msg
@@ -304,10 +325,18 @@ end
 #
 function server()
     HTTP.serve() do req::HTTP.Request
-        @info "Server received a request with target $(req.target)"
-        return if req.target == "/"
+        @info "Server received a request with target " *
+            "\"$(req.target)\""
+        
+        (target, query) = '?' in req.target ?
+            split(req.target, "?") :
+            (req.target, "")
+        days_back = get_days_back(query)
+        return if target == "/"
             @info "Generating response..."
-            r = HTTP.Response(200, resp_html(generate_table()))
+            r = HTTP.Response(
+                200,
+                resp_html(generate_table(days_back)))
             @info "... done"
             r
         else

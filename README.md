@@ -12,7 +12,8 @@ provided the data is available in [`data`](data) for desired date.
 More comments on usage and the data formats are provided below and inside the script.
 
 The result of executing the script is served on [julia.prl.fit.cvut.cz/covid](https://julia.prl.fit.cvut.cz/covid)
-(see function `server` in [`src/covid.jl`](src/covid.jl)).
+(see function `server` in [`src/covid.jl`](src/covid.jl)). You can ask for data on past 'N' days
+by using (e.g. for `N=5`): [julia.prl.fit.cvut.cz/covid?d=5](https://julia.prl.fit.cvut.cz/covid?d=5)
 
 ## Datasets
 
