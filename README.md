@@ -1,4 +1,4 @@
-# covid-19-in-russian-regions
+# [project is frozen as of Aug 2020] covid-19-in-russian-regions
 
 This project aims to assist in updating the Wikipedia table
 
